@@ -90,29 +90,36 @@ class Carrito {
     try {
       const producto = await findProductBySku(sku);
       console.log("Producto encontrado ", producto);
-      if (this.existenciaProductoEnCarro(producto)) {
-        console.log("Actualizando contenido del carro de compras...");
-        this.actualizarCantidadDelProducto(producto.sku, cantidad);
-        this.actualizarPrecioTotal(producto.precio * cantidad);
-        console.log(this.categorias);
-      } else {
-        console.log(
-          `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
-            cantidad
-          )}  ${producto.nombre}.....`
-        );
-        // Creo un producto nuevo
-        const nuevoProducto = new ProductoEnCarrito(
-          sku,
-          producto.nombre,
-          cantidad
-        );
-
-        this.productos.push(nuevoProducto);
-        this.actualizarPrecioTotal(producto.precio * cantidad);
-        this.listaCategoria(producto);
-        console.log(this.categorias)
-      }
+          if (this.existenciaProductoEnCarro(producto)) {
+            console.log("Actualizando contenido del carro de compras...");
+            console.log(
+              `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
+                cantidad
+              )}  ${producto.nombre}.....`);
+            this.actualizarCantidadDelProducto(producto.sku, cantidad);
+            this.actualizarPrecioTotal(producto.precio * cantidad);
+        
+            console.log(this.categorias);
+          } else {
+            console.log(
+              `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
+                cantidad
+              )}  ${producto.nombre}.....`
+            );
+            // Creo un producto nuevo
+            const nuevoProducto = new ProductoEnCarrito(
+              sku,
+              producto.nombre,
+              cantidad
+            );
+            this.productos.push(nuevoProducto);
+            this.actualizarPrecioTotal(producto.precio * cantidad);
+            this.listaCategoria(producto);
+          
+            console.log(this.categorias);
+          }  
+         
+       
     } catch (error) {
       console.error(error);
     }
@@ -157,36 +164,26 @@ class Carrito {
     } else {
       this.categorias.push(producto.categoria);
     }
-   /*  console.log("Lista de Categorias");
+    /*  console.log("Lista de Categorias");
     console.log(this.categorias); */
   }
-  
+
   /* Eliminamos una categoria según corresponda. */
-  async eliminarCategoria(){
-    this.categorias= [];
-    for(const producto of this.productos) {
+  async eliminarCategoria() {
+    this.categorias = [];
+    for (const producto of this.productos) {
       const prod = await findProductBySku(producto.sku);
       this.listaCategoria(prod);
     }
-    console.log("La lista de Categorias\n") + console.log(this.categorias)
+    console.log("La lista de Categorias\n") + console.log(this.categorias);
   }
 
-  /* mostrarListaCategorias(){
-    return new Promise((resolve,reject)=>{
-      setTimeout(()=>{
-         if(this.categorias.length != 0){
-          console.log("No hay nada"); 
-          resolve(this.mostarTodasCategorias());
-         }else{
-          console.log("Error"); 
-          reject("No hay ninguna categoria cargada.")
-         }
-      }, 1500);
-    })
-  } */
-  
-  mostarTodasCategorias(){
-    return  console.log("La lista de Categorias\n") + console.log(this.categorias)
+ 
+
+  mostarTodasCategorias() {
+    return (
+      console.log("La lista de Categorias\n") + console.log(this.categorias)
+    );
   }
   /* Por medio del código del producto elimina el mismo dependiendo de la cantidad de ese producto. */
   async eliminarProducto(sku, cantidad) {
@@ -196,8 +193,24 @@ class Carrito {
         if (producto.cantidad <= cantidad) {
           this.productos = this.productos.filter((prod) => prod.sku != sku);
           this.eliminarCategoria();
+          console.log(
+            "Se eliminaron " +
+              cantidad +
+              " unidades de " +
+              producto.nombre +
+              " del carrito de compra."
+          );
+       
         } else {
           this.actualizarCantidadDelProducto(sku, -cantidad);
+          console.log(
+            "Se eliminaron " +
+              cantidad +
+              " unidades de " +
+              producto.nombre +
+              " del carrito de compra."
+          );
+       
         }
       }
     });
@@ -221,8 +234,7 @@ class Carrito {
     });
   }
 
-
- /*  mostrarCategorias() {
+  /*  mostrarCategorias() {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (this.categorias.length != 0) {
@@ -247,8 +259,6 @@ class Carrito {
     });
   }
 }
-
-
 
 // Cada producto que se agrega al carrito es creado con esta clase
 class ProductoEnCarrito {
@@ -279,12 +289,18 @@ function findProductBySku(sku) {
   });
 }
 
+
+
+
+
 const carrito = new Carrito();
-carrito.agregarProducto("WE328NJ", 10); //4
-carrito.agregarProducto("XX92LKI", 1); //7
+carrito.agregarProducto("WE328NJ", 5); //jabon
+carrito.agregarProducto("XX92LKI", 1); //
 carrito.agregarProducto("WE328J", 1);
-carrito.agregarProducto("WE328NJ", 1);
+
 carrito.agregarProducto("OL883YE", 1);
+carrito.agregarProducto("WE328NJ", 1); //jabon
+carrito.agregarProducto("WE328NJ", 1);//jabon
 
 /* carrito
   .mostrarCompra()
@@ -293,11 +309,20 @@ carrito.agregarProducto("OL883YE", 1);
 /* carrito.eliminarProducto("WE328NJ" , 5);  */
 /* carrito.mostrarCompra().then(obj=> console.log(obj)).catch(obj=> console.error(obj)); */
 carrito
-  .eliminarProductosCarrito("WE328NJ", 11)
+  .eliminarProductosCarrito("WE328NJ", 2) //jabon
   .then((obj) => console.log(obj))
   .catch((obj) => console.error(obj));
 /*   carrito.mostarTodasCategorias(); */
- /*  carrito
+/*  carrito
   .mostrarCategorias()
   .then((obj) => console.log(obj))
   .catch((obj) => console.error(obj)); */
+
+carrito.agregarProducto("WE328NJ", 5); //jabon
+
+carrito
+  .eliminarProductosCarrito("WE328NJ", 10) //jabon
+  .then((obj) => console.log(obj))
+  .catch((obj) => console.error(obj));
+
+
