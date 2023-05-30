@@ -87,47 +87,61 @@ class Carrito {
    */
   async agregarProducto(sku, cantidad) {
     // Busco el producto en la "base de datos"
+
     try {
-      const producto = await findProductBySku(sku);
-      console.log("Producto encontrado ", producto);
-          if (this.existenciaProductoEnCarro(producto)) {
-            console.log("Actualizando contenido del carro de compras...");
-            console.log(
-              `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
-                cantidad
-              )}  ${producto.nombre}.....`);
-            this.actualizarCantidadDelProducto(producto.sku, cantidad);
-            this.actualizarPrecioTotal(producto.precio * cantidad);
-        
-            console.log(this.categorias);
-          } else {
-            console.log(
-              `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
-                cantidad
-              )}  ${producto.nombre}.....`
-            );
-            // Creo un producto nuevo
-            const nuevoProducto = new ProductoEnCarrito(
-              sku,
-              producto.nombre,
-              cantidad
-            );
-            this.productos.push(nuevoProducto);
-            this.actualizarPrecioTotal(producto.precio * cantidad);
-            this.listaCategoria(producto);
-          
-            console.log(this.categorias);
-          }  
-         
-       
-    } catch (error) {
-      console.error(error);
-    }
+      checkNumber(cantidad)
+      checkNumberNegativos(cantidad)
+         const producto = await findProductBySku(sku);
+          console.log("Producto encontrado  "+ producto.nombre + " ", producto);
+            if(producto.stock!=0){
+              const productoCarro = this.existenciaProductoEnCarro(producto);
+              if (productoCarro) {
+                checkNumberMayores(producto.stock,cantidad);
+                console.log("Actualizando contenido del carro de compras...");
+                producto.stock=actualizarStock(producto.stock,-cantidad);
+                console.log(
+                  `Agregando al carrito ${cantidad}  ${this.mensajeCantidad(
+                    cantidad
+                  )}  ${producto.nombre}.....`);
+                  productoCarro.cantidad = actualizarStock(productoCarro.cantidad, cantidad);
+                 this.actualizarPrecioTotal(producto.precio * cantidad);             
+               console.log(this.categorias);
+              } else {
+                checkNumberMayores(producto.stock,cantidad);
+                console.log(
+                  `Intentando agregar al carrito ${cantidad}  ${this.mensajeCantidad(
+                    cantidad
+                  )}  ${producto.nombre}.....`
+                );
+                // Creo un producto nuevo
+                const nuevoProducto = new ProductoEnCarrito(
+                  sku,
+                  producto.nombre,
+                  cantidad
+                );
+                this.productos.push(nuevoProducto);
+                this.actualizarPrecioTotal(producto.precio * cantidad);
+                producto.stock = actualizarStock(producto.stock,-cantidad);
+                this.listaCategoria(producto);
+                console.log(this.categorias);         
+              }  
+            }else{
+              console.error("No hay más "+producto.nombre+ " en stock");
+            }
+            mostrarStock();
+            this.mostrarCompra()           
+        } catch (error) {
+          if(error)
+          console.error(error);
+          else
+          console.error("No se pudo ejecutar la peticion Valores incorrectos.")
+          console.log("\n");
+        } 
   }
 
   /* Retorna un string en singular o plurarl según la cantidad. */
   mensajeCantidad(cantidad) {
-    return cantidad != 1 ? "unidades" : "unidad";
+    return cantidad != 1 ? "unidades de " : "unidad de ";
   }
 
   /* Verificar la existencia de un producto en el carro */
@@ -136,19 +150,29 @@ class Carrito {
   }
 
   /* Actualiza la cantidades de un producto existente */
-  actualizarCantidadDelProducto(sku, cantidad) {
-    this.productos.forEach((item) => {
-      if (item.sku === sku) {
-        item.cantidad += cantidad;
-      }
-    });
+  actualizarCantidadDelProducto(productoCarro, cantidad) {
+    productoCarro.cantidad += cantidad;
   }
 
   /* Actualiza el precio total acumulado en el contenido del carrito */
   actualizarPrecioTotal(monto) {
-    this.precioTotal += monto;
+    this.precioTotal =this.precioTotal + monto;  
   }
 
+
+
+   /*  Retorna una promesa cuando intentamos mostrar el contenido del carrito de compra */
+   mostrarCompra() {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (this.productos.length != 0) {
+          resolve(this.mostrarCarroCompra());
+        } else {
+          reject(`El carrito esta vacio`);
+        }
+      }, 1000);
+    });
+  }
   /* Muestra todo lo que tiene el carro de compras */
   mostrarCarroCompra() {
     console.log("Contenido del Carrito de Compra ");
@@ -156,17 +180,17 @@ class Carrito {
       console.log("Producto " + item.nombre + " Cantidad:" + item.cantidad);
     });
     console.log("El total es: $" + this.precioTotal);
+    console.log("\n")
   }
 
   /* Realizamos la carga de la lista de categorias */
   listaCategoria(producto) {
+    console.log("Actualizando la lista de categorias de los productos...")
     if (this.categorias.find((categ) => categ === producto.categoria)) {
     } else {
       this.categorias.push(producto.categoria);
     }
-    /*  console.log("Lista de Categorias");
-    console.log(this.categorias); */
-  }
+   }
 
   /* Eliminamos una categoria según corresponda. */
   async eliminarCategoria() {
@@ -186,78 +210,45 @@ class Carrito {
     );
   }
   /* Por medio del código del producto elimina el mismo dependiendo de la cantidad de ese producto. */
-  async eliminarProducto(sku, cantidad) {
+  async eliminarProducto( productoCarro, cantidad) {
     console.log("Eliminando Producto...");
-    this.productos.forEach((producto) => {
-      if (producto.sku === sku) {
-        if (producto.cantidad <= cantidad) {
-          this.productos = this.productos.filter((prod) => prod.sku != sku);
+    checkNumber(cantidad);
+    checkNumberNegativos(cantidad);
+        checkNumberMayores(productoCarro.cantidad,cantidad);
+       if ( productoCarro.cantidad === cantidad) {
+          this.productos = this.productos.filter((prod) => prod.sku !=  productoCarro.sku);
           this.eliminarCategoria();
-          console.log(
-            "Se eliminaron " +
-              cantidad +
-              " unidades de " +
-              producto.nombre +
-              " del carrito de compra."
-          );
-       
-        } else {
-          this.actualizarCantidadDelProducto(sku, -cantidad);
-          console.log(
-            "Se eliminaron " +
-              cantidad +
-              " unidades de " +
-              producto.nombre +
-              " del carrito de compra."
-          );
-       
+          } else {  
+          actualizarStock( productoCarro, -cantidad);
         }
+      try {
+        const prod = await findProductBySku(productoCarro.sku);
+        actualizarStock(prod, cantidad); 
+        this.actualizarPrecioTotal(-(prod.precio * cantidad));
+        console.log("Se eliminaron " + productoCarro.cantidad + this.mensajeCantidad(cantidad) + productoCarro.nombre)
+        mostrarStock();
+        this.mostrarCompra();
+      } catch (error) {
+        console.error(error)
       }
-    });
-    const prod = await findProductBySku(sku);
-    this.actualizarPrecioTotal(-(prod.precio * cantidad));
-    this.mostrarCarroCompra();
-  }
+   }
 
   /* Retorna una promesa dependiendo según corresponda cuando eliminamos un producto del carro */
   eliminarProductosCarrito(sku, cantidad) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (this.productos.find((item) => item.sku === sku)) {
-          resolve(this.eliminarProducto(sku, cantidad));
-        } else {
+        const productoCarro = this.productos.find((item) => item.sku === sku);
+        if(productoCarro)
+          resolve(this.eliminarProducto( productoCarro, cantidad));
+        else
           reject(
             `No existe el código ${sku} del producto que quiere eliminar del carro.`
           );
-        }
-      }, 1500);
+      }, 2000);
     });
   }
 
-  /*  mostrarCategorias() {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (this.categorias.length != 0) {
-          resolve(this.mostarTodasCategorias());
-        } else {
-          reject(`La lista esta vacia`);
-        }
-      }, 1500);
-    });
-  } */
-
-  /*  Retorna una promesa cuando intentamos mostrar el contenido del carrito de compra */
-  mostrarCompra() {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (this.productos.length != 0) {
-          resolve(this.mostrarCarroCompra());
-        } else {
-          reject(`El carrito esta vacio`);
-        }
-      }, 1500);
-    });
-  }
+ 
 }
 
 // Cada producto que se agrega al carrito es creado con esta clase
@@ -277,6 +268,7 @@ class ProductoEnCarrito {
 function findProductBySku(sku) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
+      console.log("Buscando si existe el producto en el SUPER...")
       const foundProduct = productosDelSuper.find(
         (product) => product.sku === sku
       );
@@ -289,40 +281,120 @@ function findProductBySku(sku) {
   });
 }
 
+function actualizarStock(stock, cantidad) {
+ return stock += cantidad;
+}
+
+function checkNumber(numero){
+  let error = new Error();
+  error.name = "Mi control de Error"
+
+if(typeof(numero) === 'number'){
+  return numero;
+}
+else{
+  error.message = "El valor ingresado \""+ numero + "\""+ " No es un numero."
+  throw (console.error(error));
+}
+
+}
+
+function checkNumberNegativos(numero){
+  let error = new Error();
+  error.name = "Mi control de Errores"
+
+if(numero >= 0){
+  return numero;
+}
+else{
+  error.message ="El valor ingresado \""+ numero + "\""+ " No es un numero Positivo."
+  throw (console.error(error));
+}
+
+}
+
+function checkNumberMayores(cantidadExistente, cantidad){
+  let error = new Error();
+  error.name = "Mi control de Error"
+
+if(cantidadExistente >= cantidad){
+  return cantidad;
+}
+else{
+  error.message = "Debe ingresar una cantidad menor o igual a la existente que es "+ cantidadExistente ;
+  throw (console.error(error));
+}
+}
+
+/* Muestra el stock disponible del super*/
+function mostrarStock() {
+  console.log("Productos en STOCK ");
+  productosDelSuper.forEach((item) => {
+    console.log(item);
+
+  });
+  
+}
 
 
 
 
-const carrito = new Carrito();
-carrito.agregarProducto("WE328NJ", 5); //jabon
-carrito.agregarProducto("XX92LKI", 1); //
-carrito.agregarProducto("WE328J", 1);
 
-carrito.agregarProducto("OL883YE", 1);
-carrito.agregarProducto("WE328NJ", 1); //jabon
-carrito.agregarProducto("WE328NJ", 1);//jabon
 
-/* carrito
-  .mostrarCompra()
-  .then((obj) => console.log(obj))
-  .catch((obj) => console.error(obj)); */
-/* carrito.eliminarProducto("WE328NJ" , 5);  */
-/* carrito.mostrarCompra().then(obj=> console.log(obj)).catch(obj=> console.error(obj)); */
-carrito
-  .eliminarProductosCarrito("WE328NJ", 2) //jabon
-  .then((obj) => console.log(obj))
-  .catch((obj) => console.error(obj));
-/*   carrito.mostarTodasCategorias(); */
-/*  carrito
-  .mostrarCategorias()
-  .then((obj) => console.log(obj))
-  .catch((obj) => console.error(obj)); */
 
-carrito.agregarProducto("WE328NJ", 5); //jabon
+async function main(){
+  const carrito = new Carrito();
+  try {
+  await carrito.agregarProducto("KS944RUR",3); //jabon
+  await  carrito.agregarProducto("XX92LKI", 1); //
+  await  carrito.agregarProducto("PV332MJ", 11);
+  await  carrito.agregarProducto("KS944RUR", 2); //jabon
+  await  carrito.agregarProducto("PV332MJ", 11);
+  await  carrito.agregarProducto("PV332MJ", 5);
+  
+  await carrito.agregarProducto("KS944RUR", 1); //jabon
+  await  carrito.agregarProducto("XX92LKI", 1); //
+  await carrito.agregarProducto("KS944RUR", "12a"); //jabon
+  await  carrito.agregarProducto("WE328J", 1);
+  
+  await  carrito.agregarProducto("XX92LKI", 1); //
+  
+  await  carrito.agregarProducto("OL883YE", 1);
+  await  carrito.agregarProducto("WE328NJ", 1); //jabon
+  await  carrito.agregarProducto("WE328NJ", 1);//jabon
 
-carrito
+  console.log("\n")
+ await carrito
+ .eliminarProductosCarrito("WE328NJ", 2) //jabon
+ .then()
+ .catch((obj) => console.error(obj));
+ console.log("\n")
+ await carrito
+ .eliminarProductosCarrito("XX92LKI", 1) //jabon
+ .then()
+ .catch((obj) => console.error(obj));
+ console.log("\n")
+ await carrito
   .eliminarProductosCarrito("WE328NJ", 10) //jabon
   .then((obj) => console.log(obj))
   .catch((obj) => console.error(obj));
+
+
+
+  await  carrito.agregarProducto("WE328NJ", 5); //jabon
+} catch (error) { 
+  console.error(error);
+
+
+}
+
+}
+
+main();
+
+
+
+
+
 
 
