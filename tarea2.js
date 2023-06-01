@@ -219,11 +219,11 @@ class Carrito {
           this.productos = this.productos.filter((prod) => prod.sku !=  productoCarro.sku);
           this.eliminarCategoria();
           } else {  
-          actualizarStock( productoCarro, -cantidad);
+          productoCarro.cantidad -= cantidad;
         }
       try {
         const prod = await findProductBySku(productoCarro.sku);
-        actualizarStock(prod, cantidad); 
+        prod.stock += cantidad; 
         this.actualizarPrecioTotal(-(prod.precio * cantidad));
         console.log("Se eliminaron " + productoCarro.cantidad + this.mensajeCantidad(cantidad) + productoCarro.nombre)
         mostrarStock();
@@ -349,7 +349,7 @@ async function main(){
   await  carrito.agregarProducto("XX92LKI", 1); //
   await  carrito.agregarProducto("PV332MJ", 11);
   await  carrito.agregarProducto("KS944RUR", 2); //jabon
-  await  carrito.agregarProducto("PV332MJ", 11);
+  await  carrito.agregarProducto("PV332MJ", -11);
   await  carrito.agregarProducto("PV332MJ", 5);
   
   await carrito.agregarProducto("KS944RUR", 1); //jabon
@@ -378,8 +378,11 @@ async function main(){
   .eliminarProductosCarrito("WE328NJ", 10) //jabon
   .then((obj) => console.log(obj))
   .catch((obj) => console.error(obj));
-
-
+  await carrito
+  .eliminarProductosCarrito("PV332MJ", 5) 
+  .then((obj) => console.log(obj))
+  .catch((obj) => console.error(obj));
+  
 
   await  carrito.agregarProducto("WE328NJ", 5); //jabon
 } catch (error) { 
